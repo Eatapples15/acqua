@@ -1,12 +1,25 @@
-// Passo 2.3: Codice JavaScript per la Mappa Leaflet
-
 // 1. Inizializza la mappa Leaflet
 var map = L.map('mapid').setView([40.6, 15.9], 9); // Centra sulla Basilicata, zoom 9
 
-// 2. Aggiungi un layer di base (Tiles) alla mappa (es. OpenStreetMap)
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+// 2. Definisci i diversi layer di base
+var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-}).addTo(map);
+});
+
+var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+});
+
+var reliefLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+});
+
+// Aggiungi il layer di OpenStreetMap come predefinito
+osmLayer.addTo(map);
+
+// Gruppo di layer per i puntatori, così possono essere attivati/disattivati
+var markersLayer = L.layerGroup().addTo(map);
+
 
 // Funzione per popolare la tabella HTML
 function populateTable(data) {
@@ -70,7 +83,7 @@ fetch('Basilicata_Water_Sources_2023_Summer_Comuni1.csv') // AGGIORNATO IL NOME 
 
             // Verifica che le coordinate siano numeri validi
             if (!isNaN(lat) && !isNaN(lon)) {
-                var marker = L.marker([lat, lon]).addTo(map);
+                var marker = L.marker([lat, lon]);
 
                 // Contenuto del popup AGGIUNTO IL COMUNE
                 var popupContent = `<b>ID:</b> ${feature.water_id}<br>` +
@@ -78,6 +91,7 @@ fetch('Basilicata_Water_Sources_2023_Summer_Comuni1.csv') // AGGIORNATO IL NOME 
                                    `<b>Area:</b> ${parseFloat(feature.area_sqm).toFixed(2)} mq (${parseFloat(feature.area_ha).toFixed(2)} Ha)`;
 
                 marker.bindPopup(popupContent);
+                markersLayer.addLayer(marker); // Aggiungi il marker al gruppo di layer
             }
         });
 
@@ -88,3 +102,16 @@ fetch('Basilicata_Water_Sources_2023_Summer_Comuni1.csv') // AGGIORNATO IL NOME 
         console.error('Errore nel caricamento del CSV:', error);
         alert('Impossibile caricare i dati degli specchi d\'acqua. Controlla il nome del file CSV.');
     });
+
+// 4. Aggiungi il controllo dei layer alla mappa
+var baseMaps = {
+    "OpenStreetMap (Base)": osmLayer,
+    "Satellite (Esri)": satelliteLayer,
+    "Rilievo (OpenTopoMap)": reliefLayer
+};
+
+var overlayMaps = {
+    "Puntatori Specchi d'Acqua": markersLayer
+};
+
+L.control.layers(baseMaps, overlayMaps).addTo(map);
