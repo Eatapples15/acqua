@@ -24,7 +24,6 @@ var markersLayer = L.layerGroup().addTo(map);
 let allWaterData = [];
 
 // Funzione per popolare la tabella HTML
-// Ora accetta un array di dati filtrati
 function populateTable(dataToDisplay) {
     var tableBody = document.getElementById('data-table').getElementsByTagName('tbody')[0];
     tableBody.innerHTML = ''; // Pulisce la tabella prima di ripopolarla
@@ -66,14 +65,9 @@ function applyFilters() {
 
     let filteredData = allWaterData.filter(feature => {
         const featureComune = (feature.Comune || '').toLowerCase();
-        // Ensure feature.area_ha is a valid number before comparison
         const featureAreaHa = parseFloat(feature.area_ha);
 
-        // Filter by Comune
         const matchesComune = comuneFilter === '' || featureComune.includes(comuneFilter);
-
-        // Filter by Area (Ha)
-        // Check for valid numbers and apply comparison
         const matchesAreaMin = isNaN(areaMinFilter) || isNaN(featureAreaHa) || featureAreaHa >= areaMinFilter;
         const matchesAreaMax = isNaN(areaMaxFilter) || isNaN(featureAreaHa) || featureAreaHa <= areaMaxFilter;
 
@@ -98,6 +92,9 @@ function applyFilters() {
             markersLayer.addLayer(marker); // Add marker to the layer group
         }
     });
+
+    // NEW: Update the count of visible elements
+    document.getElementById('resultsCount').textContent = `Elementi visibili: ${filteredData.length}`;
 }
 
 // Event Listeners for filter buttons
@@ -126,17 +123,13 @@ fetch('Basilicata_Water_Sources_2023_Summer_Comuni1.csv')
             const values = row.split(',');
             const obj = {};
             headers.forEach((header, i) => {
-                obj[header.trim()] = values[i] ? values[i].trim() : ''; // Handle potential undefined values
+                obj[header.trim()] = values[i] ? values[i].trim() : '';
             });
-            // Ensure area_ha is always a number for filtering
             obj.area_ha = parseFloat(obj.area_ha);
             return obj;
         });
 
-        // Store original data globally
         allWaterData = data;
-
-        // Initially display all data
         applyFilters(); // Call applyFilters to populate table and markers with all initial data
     })
     .catch(error => {
