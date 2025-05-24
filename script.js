@@ -20,13 +20,16 @@ osmLayer.addTo(map);
 // Gruppo di layer per i puntatori, così possono essere attivati/disattivati
 var markersLayer = L.layerGroup().addTo(map);
 
+// Variabile globale per memorizzare tutti i dati originali
+let allWaterData = [];
 
 // Funzione per popolare la tabella HTML
-function populateTable(data) {
+// Ora accetta un array di dati filtrati
+function populateTable(dataToDisplay) {
     var tableBody = document.getElementById('data-table').getElementsByTagName('tbody')[0];
     tableBody.innerHTML = ''; // Pulisce la tabella prima di ripopolarla
 
-    data.forEach(feature => {
+    dataToDisplay.forEach(feature => {
         var newRow = tableBody.insertRow();
 
         // ID
@@ -55,48 +58,91 @@ function populateTable(data) {
     });
 }
 
-// 3. Carica il file CSV e aggiungilo alla mappa
-// Assicurati che il nome del file 'Basilicata_Water_Sources_2023_Summer_Comuni.csv'
-// sia corretto e si trovi nella stessa cartella.
-fetch('Basilicata_Water_Sources_2023_Summer_Comuni1.csv') // AGGIORNATO IL NOME DEL FILE CSV
-    .then(response => response.text()) // Ottieni il testo del CSV
-    .then(csvText => {
-        // Parsa il CSV manualmente (funziona bene per CSV semplici, senza virgole nei campi)
-        const rows = csvText.trim().split('\n'); // Divide per riga
-        const headers = rows[0].split(','); // Prende la prima riga come intestazioni
+// Funzione per applicare i filtri e aggiornare la tabella e i marcatori
+function applyFilters() {
+    const comuneFilter = document.getElementById('comuneFilter').value.toLowerCase().trim();
+    const areaMinFilter = parseFloat(document.getElementById('areaMinFilter').value);
+    const areaMaxFilter = parseFloat(document.getElementById('areaMaxFilter').value);
 
-        const data = rows.slice(1).map(row => { // Salta la prima riga e mappa le altre
-            const values = row.split(','); // Divide i valori per virgola
+    let filteredData = allWaterData.filter(feature => {
+        const featureComune = (feature.Comune || '').toLowerCase();
+        const featureAreaHa = parseFloat(feature.area_ha);
+
+        // Filtro per Comune
+        const matchesComune = comuneFilter === '' || featureComune.includes(comuneFilter);
+
+        // Filtro per Area (Ha)
+        const matchesAreaMin = isNaN(areaMinFilter) || featureAreaHa >= areaMinFilter;
+        const matchesAreaMax = isNaN(areaMaxFilter) || featureAreaHa <= areaMaxFilter;
+
+        return matchesComune && matchesAreaMin && matchesAreaMax;
+    });
+
+    // Aggiorna la tabella
+    populateTable(filteredData);
+
+    // Aggiorna i marcatori sulla mappa
+    markersLayer.clearLayers(); // Rimuove tutti i marcatori esistenti
+    filteredData.forEach(feature => {
+        const lat = parseFloat(feature.centroid_lat);
+        const lon = parseFloat(feature.centroid_lon);
+
+        if (!isNaN(lat) && !isNaN(lon)) {
+            var marker = L.marker([lat, lon]);
+            var popupContent = `<b>ID:</b> ${feature.water_id}<br>` +
+                               `<b>Comune:</b> ${feature.Comune || 'Non disponibile'}<br>` +
+                               `<b>Area:</b> ${parseFloat(feature.area_sqm).toFixed(2)} mq (${parseFloat(feature.area_ha).toFixed(2)} Ha)`;
+            marker.bindPopup(popupContent);
+            markersLayer.addLayer(marker);
+        }
+    });
+}
+
+// Event Listeners per i bottoni dei filtri
+document.getElementById('applyFilters').addEventListener('click', applyFilters);
+document.getElementById('resetFilters').addEventListener('click', () => {
+    document.getElementById('comuneFilter').value = '';
+    document.getElementById('areaMinFilter').value = '';
+    document.getElementById('areaMaxFilter').value = '';
+    applyFilters(); // Applica i filtri con i campi vuoti per mostrare tutti i dati
+});
+
+
+// 3. Carica il file CSV e aggiungilo alla mappa
+fetch('Basilicata_Water_Sources_2023_Summer_Comuni1.csv')
+    .then(response => response.text())
+    .then(csvText => {
+        const rows = csvText.trim().split('\n');
+        const headers = rows[0].split(',');
+
+        const data = rows.slice(1).map(row => {
+            const values = row.split(',');
             const obj = {};
             headers.forEach((header, i) => {
-                obj[header.trim()] = values[i].trim(); // Trimma spazi bianchi
+                obj[header.trim()] = values[i].trim();
             });
             return obj;
         });
 
-        // Ora 'data' è un array di oggetti JavaScript, uno per ogni riga del CSV
+        // Memorizza i dati originali in una variabile globale
+        allWaterData = data;
 
-        // Aggiungi i marker alla mappa e i dati alla tabella
-        data.forEach(feature => {
+        // Inizialmente, popola la tabella e i marcatori con tutti i dati
+        populateTable(allWaterData);
+
+        allWaterData.forEach(feature => {
             const lat = parseFloat(feature.centroid_lat);
             const lon = parseFloat(feature.centroid_lon);
 
-            // Verifica che le coordinate siano numeri validi
             if (!isNaN(lat) && !isNaN(lon)) {
                 var marker = L.marker([lat, lon]);
-
-                // Contenuto del popup AGGIUNTO IL COMUNE
                 var popupContent = `<b>ID:</b> ${feature.water_id}<br>` +
-                                   `<b>Comune:</b> ${feature.Comune || 'Non disponibile'}<br>` + // Accede alla nuova proprietà 'Comune'
+                                   `<b>Comune:</b> ${feature.Comune || 'Non disponibile'}<br>` +
                                    `<b>Area:</b> ${parseFloat(feature.area_sqm).toFixed(2)} mq (${parseFloat(feature.area_ha).toFixed(2)} Ha)`;
-
                 marker.bindPopup(popupContent);
                 markersLayer.addLayer(marker); // Aggiungi il marker al gruppo di layer
             }
         });
-
-        // Popola la tabella HTML con i dati
-        populateTable(data);
     })
     .catch(error => {
         console.error('Errore nel caricamento del CSV:', error);
