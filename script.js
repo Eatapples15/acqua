@@ -40,7 +40,7 @@ function populateTable(data) {
 
 // 3. Carica il file CSV e aggiungilo alla mappa
 // Assicurati che il nome del file 'water_centroids.csv' sia corretto e si trovi nella stessa cartella.
-fetch('water_centroids.csv')
+fetch('Basilicata_Water_Sources_Centroids.csv')
     .then(response => response.text()) // Ottieni il testo del CSV
     .then(csvText => {
         // Parsa il CSV manualmente (funziona bene per CSV semplici, senza virgole nei campi)
