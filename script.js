@@ -8,69 +8,77 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
 
-// 3. Funzione per stilizzare i poligoni d'acqua
-function styleWaterPolygons(feature) {
-    return {
-        fillColor: '#0000FF', // Blu
-        color: '#0000FF',     // Bordo blu
-        weight: 1,            // Spessore del bordo
-        opacity: 1,           // Opacità del bordo
-        fillOpacity: 0.5      // Opacità del riempimento
-    };
-}
-
-// 4. Funzione da eseguire per ogni feature (poligono) quando viene aggiunto alla mappa
-function onEachFeature(feature, layer) {
-    // Estrai le proprietà dal GeoJSON
-    var props = feature.properties;
-
-    // Crea il contenuto HTML per il popup
-    var popupContent = '<b>ID:</b> ' + props.water_id + '<br>' +
-                       '<b>Area:</b> ' + props.area_sqm.toFixed(2) + ' mq (' + props.area_ha.toFixed(2) + ' Ha)';
-
-    // Aggiungi il popup al layer
-    layer.bindPopup(popupContent);
-
-    // 5. Aggiungi i dati alla tabella HTML
+// Funzione per popolare la tabella HTML
+function populateTable(data) {
     var tableBody = document.getElementById('data-table').getElementsByTagName('tbody')[0];
-    var newRow = tableBody.insertRow();
+    tableBody.innerHTML = ''; // Pulisce la tabella prima di ripopolarla
 
-    // ID
-    var cellId = newRow.insertCell();
-    cellId.textContent = props.water_id;
+    data.forEach(feature => {
+        var newRow = tableBody.insertRow();
 
-    // Area (mq)
-    var cellAreaSqm = newRow.insertCell();
-    cellAreaSqm.textContent = props.area_sqm.toFixed(2);
+        // ID
+        var cellId = newRow.insertCell();
+        cellId.textContent = feature.water_id;
 
-    // Area (Ha)
-    var cellAreaHa = newRow.insertCell();
-    cellAreaHa.textContent = props.area_ha.toFixed(2);
+        // Area (mq)
+        var cellAreaSqm = newRow.insertCell();
+        cellAreaSqm.textContent = parseFloat(feature.area_sqm).toFixed(2);
 
-    // Calcola il centroide per Latitudine e Longitudine
-    // Nota: Leaflet ha un metodo getCenter() sui layer di poligono
-    var center = layer.getBounds().getCenter();
+        // Area (Ha)
+        var cellAreaHa = newRow.insertCell();
+        cellAreaHa.textContent = parseFloat(feature.area_ha).toFixed(2);
 
-    // Latitudine Centro
-    var cellLat = newRow.insertCell();
-    cellLat.textContent = center.lat.toFixed(6); // 6 cifre decimali per la precisione
+        // Latitudine Centro
+        var cellLat = newRow.insertCell();
+        cellLat.textContent = parseFloat(feature.centroid_lat).toFixed(6); // 6 cifre decimali per la precisione
 
-    // Longitudine Centro
-    var cellLng = newRow.insertCell();
-    cellLng.textContent = center.lng.toFixed(6);
+        // Longitudine Centro
+        var cellLng = newRow.insertCell();
+        cellLng.textContent = parseFloat(feature.centroid_lon).toFixed(6);
+    });
 }
 
-// 6. Carica il file GeoJSON e aggiungilo alla mappa
-// Assicurati che il nome del file 'water_sources.geojson' sia corretto e si trovi nella stessa cartella dell'HTML.
-fetch('water_sources.geojson')
-    .then(response => response.json())
-    .then(data => {
-        L.geoJson(data, {
-            style: styleWaterPolygons, // Applica lo stile
-            onEachFeature: onEachFeature // Esegui la funzione per ogni feature
-        }).addTo(map);
+// 3. Carica il file CSV e aggiungilo alla mappa
+// Assicurati che il nome del file 'water_centroids.csv' sia corretto e si trovi nella stessa cartella.
+fetch('water_centroids.csv')
+    .then(response => response.text()) // Ottieni il testo del CSV
+    .then(csvText => {
+        // Parsa il CSV manualmente (funziona bene per CSV semplici, senza virgole nei campi)
+        const rows = csvText.trim().split('\n'); // Divide per riga
+        const headers = rows[0].split(','); // Prende la prima riga come intestazioni
+
+        const data = rows.slice(1).map(row => { // Salta la prima riga e mappa le altre
+            const values = row.split(','); // Divide i valori per virgola
+            const obj = {};
+            headers.forEach((header, i) => {
+                obj[header.trim()] = values[i].trim(); // Trimma spazi bianchi
+            });
+            return obj;
+        });
+
+        // Ora 'data' è un array di oggetti JavaScript, uno per ogni riga del CSV
+
+        // Aggiungi i marker alla mappa e i dati alla tabella
+        data.forEach(feature => {
+            const lat = parseFloat(feature.centroid_lat);
+            const lon = parseFloat(feature.centroid_lon);
+
+            // Verifica che le coordinate siano numeri validi
+            if (!isNaN(lat) && !isNaN(lon)) {
+                var marker = L.marker([lat, lon]).addTo(map);
+
+                // Contenuto del popup
+                var popupContent = '<b>ID:</b> ' + feature.water_id + '<br>' +
+                                   '<b>Area:</b> ' + parseFloat(feature.area_sqm).toFixed(2) + ' mq (' + parseFloat(feature.area_ha).toFixed(2) + ' Ha)';
+
+                marker.bindPopup(popupContent);
+            }
+        });
+
+        // Popola la tabella HTML con i dati
+        populateTable(data);
     })
     .catch(error => {
-        console.error('Errore nel caricamento del GeoJSON:', error);
-        alert('Impossibile caricare i dati degli specchi d\'acqua. Controlla il nome del file GeoJSON.');
+        console.error('Errore nel caricamento del CSV:', error);
+        alert('Impossibile caricare i dati degli specchi d\'acqua. Controlla il nome del file CSV.');
     });
