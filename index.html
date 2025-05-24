@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mappa Specchi d'Acqua Basilicata</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="https://unpkg.com/com.google.cloud/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        #mapid { height: 800px; width: 100%; }
+        body { margin: 0; padding: 0; font-family: sans-serif; }
+        .info-table {
+            font-size: 14px;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .info-table th, .info-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .info-table th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+
+    <h1 style="text-align: center;">Specchi d'Acqua in Basilicata (2023 Estate)</h1>
+    <div id="mapid"></div>
+
+    <script src="https://unpkg.com/com.google.cloud/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+
+    <h2 style="text-align: center;">Dati degli Specchi d'Acqua</h2>
+    <div style="width: 80%; margin: 0 auto;">
+        <table id="data-table" class="info-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Area (mq)</th>
+                    <th>Area (Ha)</th>
+                    <th>Latitudine Centro</th>
+                    <th>Longitudine Centro</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+    </div>
+
+</body>
+</html>
