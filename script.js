@@ -45,7 +45,7 @@ function populateTable(data) {
 // 3. Carica il file CSV e aggiungilo alla mappa
 // Assicurati che il nome del file 'Basilicata_Water_Sources_2023_Summer_Comuni.csv'
 // sia corretto e si trovi nella stessa cartella.
-fetch('Basilicata_Water_Sources_2023_Summer_Comuni.csv') // AGGIORNATO IL NOME DEL FILE CSV
+fetch('Basilicata_Water_Sources_2023_Summer_Comuni1.csv') // AGGIORNATO IL NOME DEL FILE CSV
     .then(response => response.text()) // Ottieni il testo del CSV
     .then(csvText => {
         // Parsa il CSV manualmente (funziona bene per CSV semplici, senza virgole nei campi)
