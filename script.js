@@ -66,23 +66,25 @@ function applyFilters() {
 
     let filteredData = allWaterData.filter(feature => {
         const featureComune = (feature.Comune || '').toLowerCase();
+        // Ensure feature.area_ha is a valid number before comparison
         const featureAreaHa = parseFloat(feature.area_ha);
 
-        // Filtro per Comune
+        // Filter by Comune
         const matchesComune = comuneFilter === '' || featureComune.includes(comuneFilter);
 
-        // Filtro per Area (Ha)
-        const matchesAreaMin = isNaN(areaMinFilter) || featureAreaHa >= areaMinFilter;
-        const matchesAreaMax = isNaN(areaMaxFilter) || featureAreaHa <= areaMaxFilter;
+        // Filter by Area (Ha)
+        // Check for valid numbers and apply comparison
+        const matchesAreaMin = isNaN(areaMinFilter) || isNaN(featureAreaHa) || featureAreaHa >= areaMinFilter;
+        const matchesAreaMax = isNaN(areaMaxFilter) || isNaN(featureAreaHa) || featureAreaHa <= areaMaxFilter;
 
         return matchesComune && matchesAreaMin && matchesAreaMax;
     });
 
-    // Aggiorna la tabella
+    // Update the table
     populateTable(filteredData);
 
-    // Aggiorna i marcatori sulla mappa
-    markersLayer.clearLayers(); // Rimuove tutti i marcatori esistenti
+    // Update markers on the map
+    markersLayer.clearLayers(); // Remove all existing markers
     filteredData.forEach(feature => {
         const lat = parseFloat(feature.centroid_lat);
         const lon = parseFloat(feature.centroid_lon);
@@ -93,24 +95,29 @@ function applyFilters() {
                                `<b>Comune:</b> ${feature.Comune || 'Non disponibile'}<br>` +
                                `<b>Area:</b> ${parseFloat(feature.area_sqm).toFixed(2)} mq (${parseFloat(feature.area_ha).toFixed(2)} Ha)`;
             marker.bindPopup(popupContent);
-            markersLayer.addLayer(marker);
+            markersLayer.addLayer(marker); // Add marker to the layer group
         }
     });
 }
 
-// Event Listeners per i bottoni dei filtri
+// Event Listeners for filter buttons
 document.getElementById('applyFilters').addEventListener('click', applyFilters);
 document.getElementById('resetFilters').addEventListener('click', () => {
     document.getElementById('comuneFilter').value = '';
     document.getElementById('areaMinFilter').value = '';
     document.getElementById('areaMaxFilter').value = '';
-    applyFilters(); // Applica i filtri con i campi vuoti per mostrare tutti i dati
+    applyFilters(); // Apply filters with empty fields to show all data
 });
 
 
-// 3. Carica il file CSV e aggiungilo alla mappa
+// 3. Load the CSV file
 fetch('Basilicata_Water_Sources_2023_Summer_Comuni1.csv')
-    .then(response => response.text())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.text();
+    })
     .then(csvText => {
         const rows = csvText.trim().split('\n');
         const headers = rows[0].split(',');
@@ -119,37 +126,25 @@ fetch('Basilicata_Water_Sources_2023_Summer_Comuni1.csv')
             const values = row.split(',');
             const obj = {};
             headers.forEach((header, i) => {
-                obj[header.trim()] = values[i].trim();
+                obj[header.trim()] = values[i] ? values[i].trim() : ''; // Handle potential undefined values
             });
+            // Ensure area_ha is always a number for filtering
+            obj.area_ha = parseFloat(obj.area_ha);
             return obj;
         });
 
-        // Memorizza i dati originali in una variabile globale
+        // Store original data globally
         allWaterData = data;
 
-        // Inizialmente, popola la tabella e i marcatori con tutti i dati
-        populateTable(allWaterData);
-
-        allWaterData.forEach(feature => {
-            const lat = parseFloat(feature.centroid_lat);
-            const lon = parseFloat(feature.centroid_lon);
-
-            if (!isNaN(lat) && !isNaN(lon)) {
-                var marker = L.marker([lat, lon]);
-                var popupContent = `<b>ID:</b> ${feature.water_id}<br>` +
-                                   `<b>Comune:</b> ${feature.Comune || 'Non disponibile'}<br>` +
-                                   `<b>Area:</b> ${parseFloat(feature.area_sqm).toFixed(2)} mq (${parseFloat(feature.area_ha).toFixed(2)} Ha)`;
-                marker.bindPopup(popupContent);
-                markersLayer.addLayer(marker); // Aggiungi il marker al gruppo di layer
-            }
-        });
+        // Initially display all data
+        applyFilters(); // Call applyFilters to populate table and markers with all initial data
     })
     .catch(error => {
         console.error('Errore nel caricamento del CSV:', error);
-        alert('Impossibile caricare i dati degli specchi d\'acqua. Controlla il nome del file CSV.');
+        alert('Impossibile caricare i dati degli specchi d\'acqua. Controlla il nome del file CSV e la console per maggiori dettagli.');
     });
 
-// 4. Aggiungi il controllo dei layer alla mappa
+// 4. Add layer control to the map
 var baseMaps = {
     "OpenStreetMap (Base)": osmLayer,
     "Satellite (Esri)": satelliteLayer,
