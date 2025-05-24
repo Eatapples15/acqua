@@ -35,12 +35,17 @@ function populateTable(data) {
         // Longitudine Centro
         var cellLng = newRow.insertCell();
         cellLng.textContent = parseFloat(feature.centroid_lon).toFixed(6);
+
+        // NUOVA CELLA PER IL COMUNE
+        var cellComune = newRow.insertCell();
+        cellComune.textContent = feature.Comune || 'Non disponibile'; // Mostra il comune o 'Non disponibile' se vuoto
     });
 }
 
 // 3. Carica il file CSV e aggiungilo alla mappa
-// Assicurati che il nome del file 'water_centroids.csv' sia corretto e si trovi nella stessa cartella.
-fetch('Basilicata_Water_Sources_Centroids.csv')
+// Assicurati che il nome del file 'Basilicata_Water_Sources_2023_Summer_Comuni.csv'
+// sia corretto e si trovi nella stessa cartella.
+fetch('Basilicata_Water_Sources_2023_Summer_Comuni.csv') // AGGIORNATO IL NOME DEL FILE CSV
     .then(response => response.text()) // Ottieni il testo del CSV
     .then(csvText => {
         // Parsa il CSV manualmente (funziona bene per CSV semplici, senza virgole nei campi)
@@ -67,9 +72,10 @@ fetch('Basilicata_Water_Sources_Centroids.csv')
             if (!isNaN(lat) && !isNaN(lon)) {
                 var marker = L.marker([lat, lon]).addTo(map);
 
-                // Contenuto del popup
-                var popupContent = '<b>ID:</b> ' + feature.water_id + '<br>' +
-                                   '<b>Area:</b> ' + parseFloat(feature.area_sqm).toFixed(2) + ' mq (' + parseFloat(feature.area_ha).toFixed(2) + ' Ha)';
+                // Contenuto del popup AGGIUNTO IL COMUNE
+                var popupContent = `<b>ID:</b> ${feature.water_id}<br>` +
+                                   `<b>Comune:</b> ${feature.Comune || 'Non disponibile'}<br>` + // Accede alla nuova proprietà 'Comune'
+                                   `<b>Area:</b> ${parseFloat(feature.area_sqm).toFixed(2)} mq (${parseFloat(feature.area_ha).toFixed(2)} Ha)`;
 
                 marker.bindPopup(popupContent);
             }
