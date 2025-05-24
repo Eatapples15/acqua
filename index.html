@@ -61,6 +61,11 @@
         .filter-controls button:hover {
             background-color: #0056b3;
         }
+        #resultsCount { /* Added style for the count */
+            text-align: center;
+            margin-top: 10px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -83,6 +88,8 @@
         <button id="applyFilters">Applica Filtri</button>
         <button id="resetFilters">Reset Filtri</button>
     </div>
+
+    <div id="resultsCount"></div>
 
     <div style="width: 80%; margin: 0 auto;">
         <table id="data-table" class="info-table">
